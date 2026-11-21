@@ -1,0 +1,105 @@
+<h2>Chaman : aura par spé</h2>
+<p class="subtitle">Passe la souris dans chaque zone. Sans souris, l'aura se balade toute seule.</p>
+
+<div class="cards">
+  <div class="card" data-choice="elem" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0"><canvas id="c1" width="320" height="240" style="width:100%;background:#12151a;cursor:none;display:block"></canvas></div>
+    <div class="card-body"><h3>Élémentaire : éclairs</h3><p>Petits arcs électriques bleus qui crépitent autour du curseur.</p></div>
+  </div>
+  <div class="card" data-choice="enh" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0"><canvas id="c2" width="320" height="240" style="width:100%;background:#12151a;cursor:none;display:block"></canvas></div>
+    <div class="card-body"><h3>Amélioration : tourbillon de vent</h3><p>Traits d'air qui tournent vite, avec une étincelle de temps en temps.</p></div>
+  </div>
+  <div class="card" data-choice="resto" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0"><canvas id="c3" width="320" height="240" style="width:100%;background:#12151a;cursor:none;display:block"></canvas></div>
+    <div class="card-body"><h3>Restauration : eau</h3><p>Onde qui s'élargit et gouttes bleu-vert qui flottent autour.</p></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  function setup(id, kind){
+    var cv = document.getElementById(id), g = cv.getContext('2d');
+    var W = cv.width, H = cv.height, m = {x:W/2,y:H/2,in:false}, P = [], t = 0, rip = [];
+    cv.addEventListener('mousemove', function(e){
+      var r = cv.getBoundingClientRect();
+      m.x = (e.clientX-r.left)*W/r.width; m.y = (e.clientY-r.top)*H/r.height; m.in = true;
+    });
+    cv.addEventListener('mouseleave', function(){ m.in = false; });
+
+    function bolt(x1,y1,x2,y2,depth){
+      if(depth===0){ g.lineTo(x2,y2); return; }
+      var mx=(x1+x2)/2+(Math.random()-.5)*10, my=(y1+y2)/2+(Math.random()-.5)*10;
+      bolt(x1,y1,mx,my,depth-1); bolt(mx,my,x2,y2,depth-1);
+    }
+
+    function frame(){
+      t += 0.016;
+      if(!m.in){ m.x = W/2+Math.cos(t*1.1)*80; m.y = H/2+Math.sin(t*1.7)*55; }
+      g.globalCompositeOperation = 'source-over';
+      g.fillStyle = kind==='elem' ? 'rgba(18,21,26,0.55)' : 'rgba(18,21,26,0.3)';
+      g.fillRect(0,0,W,H);
+      g.globalCompositeOperation = 'lighter';
+
+      if(kind==='elem'){
+        var n = Math.random()<.7 ? 2 : 4;
+        for(var i=0;i<n;i++){
+          var a = Math.random()*6.28, a2 = a+(Math.random()-.5)*1.6, r1 = 6, r2 = 18+Math.random()*12;
+          g.strokeStyle = Math.random()<.3 ? '#FFFFFF' : '#5AB8FF';
+          g.globalAlpha = .6+Math.random()*.4; g.lineWidth = Math.random()<.3?2:1.2;
+          g.beginPath(); g.moveTo(m.x+Math.cos(a)*r1, m.y+Math.sin(a)*r1);
+          bolt(m.x+Math.cos(a)*r1, m.y+Math.sin(a)*r1, m.x+Math.cos(a2)*r2, m.y+Math.sin(a2)*r2, 3);
+          g.stroke();
+        }
+        g.globalAlpha = .35+Math.random()*.2; g.fillStyle = '#2F7FFF';
+        g.beginPath(); g.arc(m.x,m.y,12,0,6.28); g.fill();
+      }
+
+      if(kind==='enh'){
+        for(var k=0;k<3;k++){
+          var ang = Math.random()*6.28;
+          P.push({a:ang, r:10+Math.random()*16, life:1, w:.5+Math.random()*.6, c:Math.random()<.08?'#FFD36A':(Math.random()<.5?'#DDF3FF':'#7FC8FF')});
+        }
+        for(var q=P.length-1;q>=0;q--){
+          var p = P[q]; p.life -= .035; p.a += .18; p.r += .15;
+          if(p.life<=0){ P.splice(q,1); continue; }
+          g.globalAlpha = p.life*.8; g.strokeStyle = p.c; g.lineWidth = p.c==='#FFD36A'?2.5:1.3;
+          g.beginPath(); g.arc(m.x, m.y, p.r, p.a, p.a+p.w); g.stroke();
+        }
+        g.globalAlpha = .25; g.fillStyle = '#9FD8FF';
+        g.beginPath(); g.arc(m.x,m.y,8,0,6.28); g.fill();
+      }
+
+      if(kind==='resto'){
+        if(Math.floor(t*60)%45===0) rip.push({r:4,life:1});
+        for(var z=rip.length-1;z>=0;z--){
+          var w = rip[z]; w.r += .6; w.life -= .02;
+          if(w.life<=0){ rip.splice(z,1); continue; }
+          g.globalAlpha = w.life*.6; g.strokeStyle = '#5FE3D0'; g.lineWidth = 1.5;
+          g.beginPath(); g.arc(m.x,m.y,w.r,0,6.28); g.stroke();
+        }
+        if(Math.random()<.6){
+          var b = Math.random()*6.28, rr = 10+Math.random()*14;
+          P.push({x:m.x+Math.cos(b)*rr, y:m.y+Math.sin(b)*rr, vx:(Math.random()-.5)*.3, vy:-.25-Math.random()*.3, life:1, r:1.5+Math.random()*2.5, c:Math.random()<.5?'#7FE7FF':'#4FD39A'});
+        }
+        for(var q2=P.length-1;q2>=0;q2--){
+          var d = P[q2]; d.x += d.vx; d.y += d.vy; d.life -= .015;
+          if(d.life<=0){ P.splice(q2,1); continue; }
+          g.globalAlpha = d.life*.8; g.fillStyle = d.c;
+          g.beginPath(); g.arc(d.x,d.y,d.r,0,6.28); g.fill();
+          g.globalAlpha = d.life*.9; g.fillStyle = '#FFFFFF';
+          g.beginPath(); g.arc(d.x-d.r*.3,d.y-d.r*.3,d.r*.3,0,6.28); g.fill();
+        }
+        g.globalAlpha = .3; g.fillStyle = '#2FB8C8';
+        g.beginPath(); g.arc(m.x,m.y,9,0,6.28); g.fill();
+      }
+
+      g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+      g.fillStyle = '#0070DD'; g.beginPath(); g.arc(m.x,m.y,3.5,0,6.28); g.fill();
+      requestAnimationFrame(frame);
+    }
+    frame();
+  }
+  setup('c1','elem'); setup('c2','enh'); setup('c3','resto');
+})();
+</script>

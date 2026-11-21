@@ -1,0 +1,106 @@
+<h2>Effet visuel selon la spé : traînée ou aura ?</h2>
+<p class="subtitle">Choisis une spé, puis passe la souris dans les deux zones noires. Pas de barre de vie.</p>
+
+<div class="section" style="display:flex;gap:8px;flex-wrap:wrap" id="specs"></div>
+
+<div class="cards">
+  <div class="card" data-choice="trainee" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0"><canvas id="cA" width="420" height="260" style="width:100%;background:#12151a;cursor:none;display:block"></canvas></div>
+    <div class="card-body">
+      <h3>1 — Traînée</h3>
+      <p>Des particules sortent du curseur quand tu bouges, puis s'effacent. Rien ne s'affiche à l'arrêt, à part un petit halo.</p>
+    </div>
+  </div>
+  <div class="card" data-choice="aura" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0"><canvas id="cB" width="420" height="260" style="width:100%;background:#12151a;cursor:none;display:block"></canvas></div>
+    <div class="card-body">
+      <h3>2 — Aura</h3>
+      <p>L'effet tourne en permanence autour du curseur, même à l'arrêt. Pas de traînée derrière.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SPECS = {
+    "Mage Feu":        {cols:["#FFE08A","#FF9A2E","#E8401C"], kind:"fire"},
+    "Mage Givre":      {cols:["#FFFFFF","#AEE6FF","#3FA9F5"], kind:"frost"},
+    "Mage Arcanes":    {cols:["#FFD6FF","#C77DFF","#7B2CBF"], kind:"spark"},
+    "Démo Affliction": {cols:["#D9FFB0","#6BE36B","#2E7D32"], kind:"smoke"},
+    "Pala Vindicte":   {cols:["#FFFFFF","#FFE27A","#F2B705"], kind:"spark"},
+    "Prêtre Ombre":    {cols:["#E0C8FF","#8A4FD8","#2B0F4D"], kind:"smoke"}
+  };
+  var cur = "Mage Feu";
+  var bar = document.getElementById('specs');
+  Object.keys(SPECS).forEach(function(k){
+    var b = document.createElement('button');
+    b.className = 'mock-button'; b.textContent = k;
+    b.onclick = function(ev){ ev.stopPropagation(); cur = k; mark(); };
+    bar.appendChild(b);
+  });
+  function mark(){ [].forEach.call(bar.children,function(b){ b.style.outline = b.textContent===cur?'2px solid #fff':'none'; }); }
+  mark();
+
+  function setup(id, mode){
+    var cv = document.getElementById(id), g = cv.getContext('2d');
+    var m = {x:210,y:130,in:false,px:210,py:130}, P = [], t = 0;
+    cv.addEventListener('mousemove', function(e){
+      var r = cv.getBoundingClientRect();
+      m.x = (e.clientX-r.left)*cv.width/r.width; m.y = (e.clientY-r.top)*cv.height/r.height; m.in = true;
+    });
+    cv.addEventListener('mouseleave', function(){ m.in=false; });
+    function spawn(x,y,s,vx,vy){
+      var c = s.cols[Math.floor(Math.random()*s.cols.length)];
+      P.push({x:x,y:y,vx:vx,vy:vy,life:1,c:c,k:s.kind,r:2+Math.random()*4,a:Math.random()*6.28});
+    }
+    function frame(){
+      t += 0.016;
+      var s = SPECS[cur];
+      if(!m.in){ m.x = 210+Math.cos(t*1.3)*120; m.y = 130+Math.sin(t*2.1)*70; }
+      var dx = m.x-m.px, dy = m.y-m.py, sp = Math.sqrt(dx*dx+dy*dy);
+      if(mode==='trail'){
+        var n = Math.min(8, Math.floor(sp/3));
+        for(var i=0;i<n;i++) spawn(m.px+dx*i/n, m.py+dy*i/n, s, (Math.random()-.5)*.8, (Math.random()-.5)*.8);
+      } else {
+        for(var j=0;j<3;j++){
+          var a = Math.random()*6.28, rr = 14+Math.random()*6;
+          spawn(m.x+Math.cos(a)*rr, m.y+Math.sin(a)*rr, s, Math.cos(a+1.57)*.6, Math.sin(a+1.57)*.6);
+        }
+      }
+      m.px = m.x; m.py = m.y;
+
+      g.globalCompositeOperation = 'source-over';
+      g.fillStyle = 'rgba(18,21,26,0.35)'; g.fillRect(0,0,cv.width,cv.height);
+      g.globalCompositeOperation = 'lighter';
+      for(var q=P.length-1;q>=0;q--){
+        var p = P[q];
+        if(p.k==='fire'){ p.vy -= .05; p.life -= .03; }
+        else if(p.k==='frost'){ p.vy += .02; p.life -= .02; p.a += .05; }
+        else if(p.k==='smoke'){ p.vx *= .98; p.vy -= .015; p.life -= .015; p.r += .08; }
+        else { p.life -= .035; }
+        p.x += p.vx; p.y += p.vy;
+        if(p.life<=0){ P.splice(q,1); continue; }
+        g.globalAlpha = Math.max(0,p.life)*(p.k==='smoke'?.35:.9);
+        g.fillStyle = p.c; g.strokeStyle = p.c;
+        if(p.k==='frost'){
+          g.lineWidth = 1.2; g.beginPath();
+          for(var b=0;b<3;b++){ var aa=p.a+b*1.047, L=p.r+1;
+            g.moveTo(p.x-Math.cos(aa)*L,p.y-Math.sin(aa)*L); g.lineTo(p.x+Math.cos(aa)*L,p.y+Math.sin(aa)*L); }
+          g.stroke();
+        } else if(p.k==='spark'){
+          g.fillRect(p.x-1,p.y-p.r,2,p.r*2); g.fillRect(p.x-p.r,p.y-1,p.r*2,2);
+        } else {
+          g.beginPath(); g.arc(p.x,p.y,p.r*p.life+ (p.k==='smoke'?2:0),0,6.28); g.fill();
+        }
+      }
+      g.globalAlpha = .9; g.fillStyle = s.cols[1];
+      g.beginPath(); g.arc(m.x,m.y,4,0,6.28); g.fill();
+      g.globalAlpha = .25; g.beginPath(); g.arc(m.x,m.y,10,0,6.28); g.fill();
+      g.globalAlpha = 1;
+      requestAnimationFrame(frame);
+    }
+    frame();
+  }
+  setup('cA','trail'); setup('cB','aura');
+})();
+</script>

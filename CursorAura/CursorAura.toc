@@ -1,0 +1,28 @@
+## Interface: 16001
+## Title: Cursor Aura
+## Title-frFR: Cursor Aura
+## Title-esES: Cursor Aura
+## Title-esMX: Cursor Aura
+## Notes: An animated particle aura around your mouse cursor, themed to your specialization: fire, frost, lightning, smoke and more.
+## Notes-frFR: Une aura de particules animée autour du curseur, selon ta spécialisation : feu, givre, éclairs, fumée et plus.
+## Notes-esES: Un aura de partículas animada alrededor del cursor, según tu especialización: fuego, escarcha, relámpagos, humo y más.
+## Notes-esMX: Un aura de partículas animada alrededor del cursor, según tu especialización: fuego, escarcha, relámpagos, humo y más.
+## Author: Ghosti
+## Version: 0.0.11
+## X-License: All Rights Reserved
+## SavedVariablesPerCharacter: CursorAuraCharDB
+
+Locales\enUS.lua
+Locales\frFR.lua
+Locales\esES.lua
+Core.lua
+Effects.lua
+Specs.lua
+Particles.lua
+Renderer.lua
+PvP.lua
+Crest.lua
+Bank.lua
+Options.lua
+Commands.lua
+Minimap.lua

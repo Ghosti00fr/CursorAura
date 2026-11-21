@@ -1,0 +1,146 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#0b0d11;font-family:Segoe UI,Arial,sans-serif;color:#eee;padding:24px 28px">
+<div style="font-size:30px;font-weight:700;margin-bottom:4px">Cursor Aura <span style="color:#8ab4ff;font-weight:400;font-size:20px">13 particle effects around your cursor</span></div>
+<div style="font-size:15px;color:#aaa;margin-bottom:16px">Auto mode picks the effect from your class and spec. Or choose any effect yourself.</div>
+<div id="grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px"></div>
+<div style="margin-top:14px;font-size:13px;color:#888">Mockup preview made outside the game. The in-game rendering may differ slightly.</div>
+<script>
+(function(){
+  var E = {
+    feu:      {n:"Fire",      c:["#FFE08A","#FF9A2E","#E8401C"]},
+    givre:    {n:"Frost",    c:["#FFFFFF","#AEE6FF","#3FA9F5"]},
+    arcanes:  {n:"Arcane",  c:["#FFD6FF","#C77DFF","#7B2CBF"]},
+    eclairs:  {n:"Lightning",  c:["#FFFFFF","#5AB8FF","#2F7FFF"]},
+    eau:      {n:"Water",      c:["#7FE7FF","#4FD39A","#2FB8C8"]},
+    vent:     {n:"Wind",     c:["#DDF3FF","#7FC8FF","#FFD36A"]},
+    nature:   {n:"Nature",   c:["#C8F57A","#5DBB3A","#2E7D32"]},
+    lumiere:  {n:"Light",  c:["#FFFFFF","#FFE27A","#F2B705"]},
+    ombre:    {n:"Shadow",    c:["#B58CFF","#5A1FA8","#2A0850"]},
+    fumee:    {n:"Smoke",    c:["#C9CDD4","#8A9099","#4A4F57"]},
+    gangrene: {n:"Fel", c:["#E6FF9A","#7CFF2E","#2E8B00"]},
+    sang:     {n:"Blood",     c:["#FF8A8A","#D11A1A","#6B0000"]},
+    terre:    {n:"Earth",    c:["#E8C99A","#A9763D","#5C3A1A"]}
+  };
+  var CL = [
+    ["Guerrier","#C69B6D",[["Armes","sang"],["Fureur","feu"],["Protection","terre"]]],
+    ["Paladin","#F48CBA",[["Sacré","lumiere"],["Protection","lumiere"],["Vindicte","lumiere"]]],
+    ["Chasseur","#AAD372",[["Maîtrise des bêtes","nature"],["Précision","vent"],["Survie","terre"]]],
+    ["Voleur","#FFF468",[["Assassinat","fumee"],["Hors-la-loi","fumee"],["Finesse","fumee"]]],
+    ["Prêtre","#FFFFFF",[["Discipline","lumiere"],["Sacré","lumiere"],["Ombre","ombre"]]],
+    ["Chevalier de la mort","#C41E3A",[["Sang","sang"],["Givre","givre"],["Impie","gangrene"]]],
+    ["Chaman","#0070DD",[["Élémentaire","eclairs"],["Amélioration","vent"],["Restauration","eau"]]],
+    ["Mage","#3FC7EB",[["Arcanes","arcanes"],["Feu","feu"],["Givre","givre"]]],
+    ["Démoniste","#8788EE",[["Affliction","ombre"],["Démonologie","gangrene"],["Destruction","feu"]]],
+    ["Moine","#00FF98",[["Maître brasseur","terre"],["Tisse-brume","eau"],["Marche-vent","vent"]]],
+    ["Druide","#FF7C0A",[["Équilibre","arcanes"],["Farouche","nature"],["Gardien","terre"],["Restauration","nature"]]],
+    ["Chasseur de démons","#A330C9",[["Dévastation","gangrene"],["Vengeance","feu"]]],
+    ["Évocateur","#33937F",[["Dévastation","feu"],["Préservation","nature"],["Augmentation","terre"]]]
+  ];
+
+  var boxes = {};
+  var grid = document.getElementById('grid');
+  Object.keys(E).forEach(function(k){
+    var d = document.createElement('div');
+    d.style.cssText = 'border:2px solid transparent;border-radius:8px;overflow:hidden;background:#12151a;transition:border-color .2s';
+    d.innerHTML = '<canvas width="190" height="140" style="width:100%;display:block;cursor:none"></canvas>'+
+      '<div style="padding:6px 8px;color:#ddd;font-size:13px;font-weight:600">'+E[k].n+'</div>';
+    grid.appendChild(d); boxes[k] = d;
+    run(d.querySelector('canvas'), k);
+  });
+
+
+  function run(cv, k){
+    var g = cv.getContext('2d'), W = cv.width, H = cv.height, col = E[k].c;
+    var m = {x:W/2,y:H/2,in:false}, P = [], t = Math.random()*10, f = 0;
+    cv.addEventListener('mousemove', function(e){
+      var r = cv.getBoundingClientRect();
+      m.x = (e.clientX-r.left)*W/r.width; m.y = (e.clientY-r.top)*H/r.height; m.in = true;
+    });
+    cv.addEventListener('mouseleave', function(){ m.in = false; });
+    function pick(){ return col[Math.floor(Math.random()*col.length)]; }
+    function ring(min,max){ var a=Math.random()*6.28, r=min+Math.random()*(max-min); return {a:a,r:r,x:m.x+Math.cos(a)*r,y:m.y+Math.sin(a)*r}; }
+    function bolt(x1,y1,x2,y2,d){ if(!d){g.lineTo(x2,y2);return;} var mx=(x1+x2)/2+(Math.random()-.5)*9,my=(y1+y2)/2+(Math.random()-.5)*9; bolt(x1,y1,mx,my,d-1); bolt(mx,my,x2,y2,d-1); }
+
+    function spawn(){
+      var p, q;
+      switch(k){
+        case 'feu': q=ring(4,14); P.push({x:q.x,y:q.y,vx:(Math.random()-.5)*.4,vy:-.6-Math.random()*.6,life:1,dl:.03,r:3+Math.random()*3,c:pick(),s:'dot'}); break;
+        case 'givre': q=ring(12,22); P.push({x:q.x,y:q.y,vx:(Math.random()-.5)*.2,vy:.25,life:1,dl:.018,r:2+Math.random()*3,c:pick(),s:'flake',a:Math.random()*6}); break;
+        case 'arcanes': q=ring(14,20); P.push({ang:q.a,rad:q.r,spin:.06,life:1,dl:.025,r:1.5+Math.random()*2,c:pick(),s:'orbit'}); break;
+        case 'vent': q=ring(10,24); P.push({ang:q.a,rad:q.r,spin:.18,grow:.15,len:.5+Math.random()*.6,life:1,dl:.035,c:Math.random()<.08?'#FFD36A':pick(),s:'arc'}); break;
+        case 'nature': q=ring(10,20); P.push({ang:q.a,rad:q.r,spin:.03,grow:.05,life:1,dl:.012,r:3+Math.random()*2,c:pick(),s:'leaf',a:Math.random()*6}); break;
+        case 'lumiere': q=ring(6,20); P.push({x:q.x,y:q.y,vx:0,vy:-.2,life:1,dl:.03,r:2+Math.random()*4,c:pick(),s:'star'}); break;
+        case 'ombre':
+          q=ring(24,32); P.push({ang:q.a,rad:q.r,spin:.07,grow:-.45,life:1,dl:.02,c:pick(),s:'tendril'});
+          if(Math.random()<.5){ q=ring(6,16); P.push({x:q.x,y:q.y,vx:(Math.random()-.5)*.3,vy:-.15,life:1,dl:.012,r:5+Math.random()*5,c:'#0A0012',s:'dark'}); }
+          break;
+        case 'fumee': q=ring(4,16); P.push({x:q.x,y:q.y,vx:(Math.random()-.5)*.35,vy:-.15-Math.random()*.2,life:1,dl:.01,r:4+Math.random()*5,c:pick(),s:'puff'}); break;
+        case 'gangrene': q=ring(4,14); P.push({x:q.x,y:q.y,vx:(Math.random()-.5)*.5,vy:-.8-Math.random()*.6,life:1,dl:.035,r:2.5+Math.random()*3,c:pick(),s:'dot'}); break;
+        case 'sang': q=ring(14,20); P.push({ang:q.a,rad:q.r,spin:.04,grow:-.12,life:1,dl:.02,r:2+Math.random()*2.5,c:pick(),s:'drop'}); break;
+        case 'terre': q=ring(10,22); P.push({ang:q.a,rad:q.r,spin:.05,grow:0,life:1,dl:.015,r:2+Math.random()*3,c:pick(),s:'rock',a:Math.random()*6}); break;
+        case 'eau': q=ring(10,22); P.push({x:q.x,y:q.y,vx:(Math.random()-.5)*.3,vy:-.25-Math.random()*.3,life:1,dl:.015,r:1.5+Math.random()*2.5,c:pick(),s:'bubble'}); break;
+      }
+    }
+
+    function frame(){
+      t += .016; f++;
+      if(!m.in){ m.x = W/2+Math.cos(t*1.1)*45; m.y = H/2+Math.sin(t*1.7)*28; }
+      g.globalCompositeOperation='source-over';
+      g.fillStyle = k==='eclairs' ? 'rgba(18,21,26,.55)' : 'rgba(18,21,26,.3)'; g.fillRect(0,0,W,H);
+      g.globalCompositeOperation='lighter';
+
+      if(k==='eclairs'){
+        var n = Math.random()<.7?2:4;
+        for(var i=0;i<n;i++){
+          var a=Math.random()*6.28, a2=a+(Math.random()-.5)*1.6, r2=16+Math.random()*10;
+          g.strokeStyle = Math.random()<.3?'#FFFFFF':'#5AB8FF'; g.globalAlpha=.6+Math.random()*.4; g.lineWidth=Math.random()<.3?2:1.2;
+          g.beginPath(); g.moveTo(m.x+Math.cos(a)*5,m.y+Math.sin(a)*5); bolt(m.x+Math.cos(a)*5,m.y+Math.sin(a)*5,m.x+Math.cos(a2)*r2,m.y+Math.sin(a2)*r2,3); g.stroke();
+        }
+      } else {
+        var rate = {feu:3,gangrene:3,vent:3,lumiere:1,eau:1,ombre:2,fumee:2,nature:1,givre:1,arcanes:2,sang:2,terre:1}[k];
+        if(k==='eau' && f%45===0) P.push({rr:4,life:1,dl:.02,s:'wave'});
+        for(var j=0;j<rate;j++) if(Math.random()<.8) spawn();
+      }
+
+      for(var q=P.length-1;q>=0;q--){
+        var p = P[q]; p.life -= p.dl;
+        if(p.life<=0){ P.splice(q,1); continue; }
+        p.ox = p.x; p.oy = p.y;
+        g.globalCompositeOperation = (p.s==='dark'||p.s==='puff') ? 'source-over' : 'lighter';
+        if(p.ang!==undefined){ p.ang += p.spin; p.rad += (p.grow||0); p.x = m.x+Math.cos(p.ang)*p.rad; p.y = m.y+Math.sin(p.ang)*p.rad; }
+        else if(p.s!=='wave'){ p.x += p.vx; p.y += p.vy; }
+        g.globalAlpha = p.life*(p.s==='smoke'?.35:.85); g.fillStyle = p.c; g.strokeStyle = p.c;
+        switch(p.s){
+          case 'dot': g.beginPath(); g.arc(p.x,p.y,p.r*p.life,0,6.28); g.fill(); break;
+          case 'tendril': if(p.ox!==undefined && p.rad>3){ g.lineWidth=2.2*p.life+.5; g.beginPath(); g.moveTo(p.ox,p.oy); g.lineTo(p.x,p.y); g.stroke(); } break;
+          case 'dark': p.r += .08; g.globalAlpha = p.life*.55; g.beginPath(); g.arc(p.x,p.y,p.r,0,6.28); g.fill(); break;
+          case 'puff': p.r += .12; g.globalAlpha = p.life*.28; g.beginPath(); g.arc(p.x,p.y,p.r,0,6.28); g.fill(); break;
+          case 'smoke': p.r += .06; g.beginPath(); g.arc(p.x,p.y,p.r,0,6.28); g.fill(); break;
+          case 'orbit': case 'drop': g.beginPath(); g.arc(p.x,p.y,p.r,0,6.28); g.fill(); break;
+          case 'flake': p.a+=.04; g.lineWidth=1.2; g.beginPath(); for(var b=0;b<3;b++){var aa=p.a+b*1.047,L=p.r+1; g.moveTo(p.x-Math.cos(aa)*L,p.y-Math.sin(aa)*L); g.lineTo(p.x+Math.cos(aa)*L,p.y+Math.sin(aa)*L);} g.stroke(); break;
+          case 'star': g.fillRect(p.x-1,p.y-p.r,2,p.r*2); g.fillRect(p.x-p.r,p.y-1,p.r*2,2); break;
+          case 'arc': g.lineWidth = p.c==='#FFD36A'?2.5:1.3; g.beginPath(); g.arc(m.x,m.y,p.rad,p.ang,p.ang+p.len); g.stroke(); break;
+          case 'leaf': p.a+=.05; g.save(); g.translate(p.x,p.y); g.rotate(p.a); g.beginPath(); g.ellipse(0,0,p.r,p.r*.45,0,0,6.28); g.fill(); g.restore(); break;
+          case 'rock': p.a+=.03; g.save(); g.translate(p.x,p.y); g.rotate(p.a); g.fillRect(-p.r/2,-p.r/2,p.r,p.r); g.restore(); break;
+          case 'bubble': g.beginPath(); g.arc(p.x,p.y,p.r,0,6.28); g.fill(); g.fillStyle='#fff'; g.beginPath(); g.arc(p.x-p.r*.3,p.y-p.r*.3,p.r*.3,0,6.28); g.fill(); break;
+          case 'wave': p.rr += .6; g.lineWidth=1.5; g.strokeStyle='#5FE3D0'; g.globalAlpha=p.life*.6; g.beginPath(); g.arc(m.x,m.y,p.rr,0,6.28); g.stroke(); break;
+        }
+      }
+      if(k==='ombre'){
+        g.globalCompositeOperation='source-over';
+        var rg=g.createRadialGradient(m.x,m.y,0,m.x,m.y,16);
+        rg.addColorStop(0,'rgba(0,0,0,.95)'); rg.addColorStop(.6,'rgba(20,0,40,.7)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+        g.globalAlpha=1; g.fillStyle=rg; g.beginPath(); g.arc(m.x,m.y,16,0,6.28); g.fill();
+        g.strokeStyle='#7A2CFF'; g.globalAlpha=.5+Math.sin(t*4)*.3; g.lineWidth=1;
+        g.beginPath(); g.arc(m.x,m.y,7,0,6.28); g.stroke();
+        g.globalAlpha=1; requestAnimationFrame(frame); return;
+      }
+      g.globalCompositeOperation='lighter';
+      g.globalAlpha=.3; g.fillStyle=col[1]; g.beginPath(); g.arc(m.x,m.y,9,0,6.28); g.fill();
+      g.globalAlpha=1; g.globalCompositeOperation='source-over';
+      g.fillStyle=col[1]; g.beginPath(); g.arc(m.x,m.y,3.5,0,6.28); g.fill();
+      requestAnimationFrame(frame);
+    }
+    frame();
+  }
+})();
+</script>
